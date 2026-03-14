@@ -6,6 +6,7 @@ import {
   FlatList,
   TextInput,
   Switch,
+  Platform,
 } from "react-native";
 import React, { useState, useCallback, useRef, useReducer } from "react";
 
@@ -120,8 +121,10 @@ const CreatePost = ({ navigation, route }: any) => {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Header title={pubName ? `Rate: ${pubName}` : "Rate a Pint"} position="middle" backButton={!!pubName} />
         <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[commonStyles.scrollViewContent, { paddingBottom: 80 }]}
+          showsVerticalScrollIndicator={true}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          style={Platform.OS === "web" ? { flex: 1, maxHeight: "calc(100vh - 120px)" as any } : { flex: 1 }}
+          nestedScrollEnabled={true}
         >
           <MultiImageUpload images={selectedImages} onImagesChange={handleImagesChange} imageLimit={5} />
 
