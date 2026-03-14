@@ -67,11 +67,7 @@ export const RatingsProvider = ({ children }: { children: React.ReactNode }) => 
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        setRatings(data.map(mapRowToPost));
-      } else {
-        setRatings(seedPosts as PostType[]);
-      }
+      setRatings(data ? data.map(mapRowToPost) : []);
     } catch (e) {
       console.error("Failed to fetch ratings from Supabase:", e);
       setRatings(seedPosts as PostType[]);
