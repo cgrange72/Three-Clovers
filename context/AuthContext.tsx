@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { Platform } from "react-native";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -18,6 +19,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  updateProfilePic: (uri: string) => Promise<{ error: string | null }>;
 };
 
 const offlineProfile: Profile = {
@@ -36,6 +38,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: null }),
   signUp: async () => ({ error: null }),
   signOut: async () => {},
+  updateProfilePic: async () => ({ error: null }),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -110,6 +113,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error: error?.message || null };
   }, [fetchProfile]);
 
+  const updateProfilePic = useCallback(async (uri: string) => {
+    if (!isSupabaseConfigured || !session?.user) {
+      return { error: "Not authenticated" };
+    }
+
+    try {
+      const userId = session.user.id;
+      const filePath = `${userId}/avatar.jpg`;
+
+      // Fetch the image as a blob
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, blob, {
+          upsert: true,
+          contentType: "image/jpeg",
+        });
+
+      if (uploadError) return { error: uploadError.message };
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
+
+      // Update profile record
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ profile_pic: publicUrl })
+        .eq("id", userId);
+
+      if (updateError) return { error: updateError.message };
+
+      // Update local state
+      setProfile((prev) => prev ? { ...prev, profile_pic: publicUrl } : prev);
+
+      return { error: null };
+    } catch (e: any) {
+      return { error: e.message || "Failed to upload profile picture" };
+    }
+  }, [session]);
+
   const signOut = useCallback(async () => {
     if (isSupabaseConfigured) {
       await supabase.auth.signOut();
@@ -128,6 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signIn,
         signUp,
         signOut,
+        updateProfilePic,
       }}
     >
       {children}

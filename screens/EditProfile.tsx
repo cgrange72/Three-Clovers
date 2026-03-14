@@ -19,6 +19,7 @@ import Button from "../components/Button";
 import { useTheme } from "../theme/ThemeProvider";
 import { NavigationProps } from "@/types/navigation";
 import { commonStyles } from "@/styles/CommonStyles";
+import { useAuth } from "@/context/AuthContext";
 
 const initialState = {
   inputValues: {
@@ -33,7 +34,8 @@ const initialState = {
 };
 
 const EditProfile = ({ navigation }: NavigationProps) => {
-  const [image, setImage] = useState<string | null>(null);
+  const { profile, updateProfilePic } = useAuth();
+  const [image, setImage] = useState<string | null>(profile?.profile_pic || null);
   const [error, setError] = useState();
   const [formState, dispatchFormState] = useReducer(reducer, initialState);
   const { dark } = useTheme();
@@ -57,6 +59,7 @@ const EditProfile = ({ navigation }: NavigationProps) => {
       const tempUri = await launchImagePicker();
       if (!tempUri) return;
       setImage(tempUri);
+      await updateProfilePic(tempUri);
     } catch (error) {}
   };
 

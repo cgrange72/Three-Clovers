@@ -54,22 +54,24 @@ const Profile = ({ navigation }: NavigationProps) => {
    * Render User Profile
    */
   const renderProfile = () => {
-    const [image, setImage] = useState(images.user1);
+    const { updateProfilePic } = useAuth();
 
     const pickImage = async () => {
       try {
         const tempUri = await launchImagePicker();
-
         if (!tempUri) return;
-
-        // set the image
-        setImage({ uri: tempUri });
+        await updateProfilePic(tempUri);
       } catch (error) {}
     };
+
+    const avatarSource = profile?.profile_pic
+      ? { uri: profile.profile_pic }
+      : images.user1;
+
     return (
       <View style={styles.profileContainer}>
         <View>
-          <Image source={image} resizeMode="cover" style={styles.avatar} />
+          <Image source={avatarSource} resizeMode="cover" style={styles.avatar} />
           <TouchableOpacity onPress={pickImage} style={styles.picContainer}>
             <MaterialIcons name="edit" size={16} color={COLORS.white} />
           </TouchableOpacity>
