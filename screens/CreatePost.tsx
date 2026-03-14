@@ -11,8 +11,8 @@ import React, { useState, useCallback, useRef, useReducer } from "react";
 
 import { COLORS, SIZES } from "../constants";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ScrollView } from "react-native";
 import Header from "@/components/Header";
-import { ScrollView } from "react-native-virtualized-view";
 import { AntDesign } from "@expo/vector-icons";
 import Button from "@/components/Button";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -230,21 +230,13 @@ const CreatePost = ({ navigation, route }: any) => {
               ios_backgroundColor="#EEEEEE"
             />
           </View>
-        </ScrollView>
-      </View>
-      <View
-        style={[
-          styles.bottomContainer,
-          {
-            backgroundColor: colors.background,
-          },
-        ]}
-      >
-        <Button
-          title="Submit Rating"
-          filled
-          style={styles.button}
-          onPress={() => {
+
+          <View style={styles.submitContainer}>
+            <Button
+              title="Submit Rating"
+              filled
+              style={styles.button}
+              onPress={() => {
             const now = new Date().toISOString();
             const ratingValue = parseFloat(formState.inputValues.rating) || 0;
             const newPost: PostType = {
@@ -278,7 +270,9 @@ const CreatePost = ({ navigation, route }: any) => {
             addRating(newPost);
             navigation.goBack();
           }}
-        />
+            />
+          </View>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -392,6 +386,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "medium",
     color: COLORS.white,
+  },
+  submitContainer: {
+    marginTop: 16,
+    marginBottom: 32,
+    alignItems: "center",
   },
   bottomContainer: {
     position: "absolute",
