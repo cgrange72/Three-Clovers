@@ -6,6 +6,7 @@ import { COLORS, FONTS, icons } from "@/constants";
 import { useTheme } from "../theme/ThemeProvider";
 
 import Favorite from "@/screens/Favorite";
+import PintLeaders from "@/screens/PintLeaders";
 import Profile from "@/screens/Profile";
 import Home from "@/screens/Home";
 import Search from "@/screens/Search";
@@ -138,6 +139,43 @@ const BottomTabNavigation = () => {
                   }}
                 >
                   Best Pints
+                </Text>
+              </View>
+            );
+          },
+        }}
+      />
+      <Tab.Screen
+        name="PintLeaders"
+        component={PintLeaders}
+        options={{
+          tabBarIcon: ({ focused }) => {
+            return (
+              <View style={{ alignItems: "center" }}>
+                <Image
+                  source={focused ? icons.star : icons.starOutline}
+                  resizeMode="contain"
+                  style={{
+                    height: 24,
+                    width: 24,
+                    tintColor: focused
+                      ? COLORS.primary
+                      : dark
+                        ? COLORS.gray3
+                        : COLORS.gray3,
+                  }}
+                />
+                <Text
+                  style={{
+                    ...FONTS.body4,
+                    color: focused
+                      ? COLORS.primary
+                      : dark
+                        ? COLORS.gray3
+                        : COLORS.gray3,
+                  }}
+                >
+                  Leaders
                 </Text>
               </View>
             );
