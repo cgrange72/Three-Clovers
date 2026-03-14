@@ -121,7 +121,7 @@ const CreatePost = ({ navigation, route }: any) => {
         <Header title={pubName ? `Rate: ${pubName}` : "Rate a Pint"} position="middle" backButton={!!pubName} />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={commonStyles.scrollViewContent}
+          contentContainerStyle={[commonStyles.scrollViewContent, { paddingBottom: 80 }]}
         >
           <MultiImageUpload images={selectedImages} onImagesChange={handleImagesChange} imageLimit={5} />
 
