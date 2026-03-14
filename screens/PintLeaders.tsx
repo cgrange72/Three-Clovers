@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, FlatList } from "react-native";
-import React, { useMemo } from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native";
+import React, { useMemo, useState } from "react";
 import { COLORS } from "../constants";
 import { AntDesign } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../theme/ThemeProvider";
 import { useRatings } from "@/context/RatingsContext";
+
+type SortMode = "pints" | "gsplits";
 
 type UserLeader = {
   userId: string;
@@ -12,25 +14,24 @@ type UserLeader = {
   lastName: string;
   profilePic: string;
   pintCount: number;
+  gSplitCount: number;
 };
 
 const PintLeaders = () => {
   const { colors, dark } = useTheme();
   const { ratings } = useRatings();
+  const [sortMode, setSortMode] = useState<SortMode>("pints");
 
   const leaders = useMemo(() => {
-    // Get today's date string in local time
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-    // Filter ratings to today only
     const todayRatings = ratings.filter((r) => {
       const dt = new Date(r.created_dt || r.submitted_dt);
       const rDateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
       return rDateStr === todayStr;
     });
 
-    // Group by user
     const userMap = new Map<string, UserLeader>();
     todayRatings.forEach((r) => {
       const uid = r.user.id?.toString() || r.created_by?.toString() || "unknown";
@@ -41,13 +42,24 @@ const PintLeaders = () => {
           lastName: r.user.lastName || "",
           profilePic: r.user.profilePic || "",
           pintCount: 0,
+          gSplitCount: 0,
         });
       }
-      userMap.get(uid)!.pintCount += 1;
+      const entry = userMap.get(uid)!;
+      entry.pintCount += 1;
+      if (r.gSplit) {
+        entry.gSplitCount += 1;
+      }
     });
 
-    return Array.from(userMap.values()).sort((a, b) => b.pintCount - a.pintCount);
-  }, [ratings]);
+    const list = Array.from(userMap.values());
+    if (sortMode === "gsplits") {
+      list.sort((a, b) => b.gSplitCount - a.gSplitCount || b.pintCount - a.pintCount);
+    } else {
+      list.sort((a, b) => b.pintCount - a.pintCount || b.gSplitCount - a.gSplitCount);
+    }
+    return list;
+  }, [ratings, sortMode]);
 
   const getMedalColor = (index: number) => {
     if (index === 0) return "#FFD700";
@@ -62,64 +74,84 @@ const PintLeaders = () => {
     return "staro";
   };
 
-  const renderLeader = ({ item, index }: { item: UserLeader; index: number }) => (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: dark ? COLORS.dark2 : COLORS.white },
-        index === 0 && styles.firstPlace,
-      ]}
-    >
-      <View style={styles.cardContent}>
-        <View style={styles.rankSection}>
-          <AntDesign
-            name={getMedalIcon(index)}
-            size={index === 0 ? 28 : 22}
-            color={getMedalColor(index)}
-          />
-          <Text
-            style={[
-              styles.rankNumber,
-              { color: dark ? COLORS.secondaryWhite : COLORS.grayScale800 },
-            ]}
-          >
-            #{index + 1}
-          </Text>
-        </View>
-        <View style={styles.nameSection}>
-          <Text
-            style={[
-              styles.userName,
-              { color: dark ? COLORS.white : COLORS.black },
-              index === 0 && styles.firstPlaceName,
-            ]}
-          >
-            {item.firstName} {item.lastName}
-          </Text>
-        </View>
-        <View style={styles.countSection}>
-          <Text
-            style={[
-              styles.pintCount,
-              { color: index === 0 ? "#FFD700" : COLORS.primary },
-            ]}
-          >
-            {item.pintCount}
-          </Text>
-          <Text
-            style={[
-              styles.pintLabel,
-              { color: dark ? COLORS.secondaryWhite : COLORS.grayScale800 },
-            ]}
-          >
-            {item.pintCount === 1 ? "pint" : "pints"}
-          </Text>
+  const renderLeader = ({ item, index }: { item: UserLeader; index: number }) => {
+    const mainCount = sortMode === "pints" ? item.pintCount : item.gSplitCount;
+    const subCount = sortMode === "pints" ? item.gSplitCount : item.pintCount;
+    const mainLabel = sortMode === "pints"
+      ? (mainCount === 1 ? "pint" : "pints")
+      : (mainCount === 1 ? "G split" : "G splits");
+    const subLabel = sortMode === "pints"
+      ? `${subCount} G split${subCount !== 1 ? "s" : ""}`
+      : `${subCount} pint${subCount !== 1 ? "s" : ""}`;
+
+    return (
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: dark ? COLORS.dark2 : COLORS.white },
+          index === 0 && styles.firstPlace,
+        ]}
+      >
+        <View style={styles.cardContent}>
+          <View style={styles.rankSection}>
+            <AntDesign
+              name={getMedalIcon(index)}
+              size={index === 0 ? 28 : 22}
+              color={getMedalColor(index)}
+            />
+            <Text
+              style={[
+                styles.rankNumber,
+                { color: dark ? COLORS.secondaryWhite : COLORS.grayScale800 },
+              ]}
+            >
+              #{index + 1}
+            </Text>
+          </View>
+          <View style={styles.nameSection}>
+            <Text
+              style={[
+                styles.userName,
+                { color: dark ? COLORS.white : COLORS.black },
+                index === 0 && styles.firstPlaceName,
+              ]}
+            >
+              {item.firstName} {item.lastName}
+            </Text>
+            <Text
+              style={[
+                styles.subStat,
+                { color: dark ? COLORS.secondaryWhite : COLORS.grayScale800 },
+              ]}
+            >
+              {subLabel}
+            </Text>
+          </View>
+          <View style={styles.countSection}>
+            <Text
+              style={[
+                styles.countText,
+                { color: index === 0 ? "#FFD700" : COLORS.primary },
+              ]}
+            >
+              {mainCount}
+            </Text>
+            <Text
+              style={[
+                styles.countLabel,
+                { color: dark ? COLORS.secondaryWhite : COLORS.grayScale800 },
+              ]}
+            >
+              {mainLabel}
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
-  const totalToday = leaders.reduce((sum, l) => sum + l.pintCount, 0);
+  const totalPints = leaders.reduce((sum, l) => sum + l.pintCount, 0);
+  const totalGSplits = leaders.reduce((sum, l) => sum + l.gSplitCount, 0);
 
   return (
     <SafeAreaView style={[styles.area, { backgroundColor: colors.background }]}>
@@ -139,9 +171,45 @@ const PintLeaders = () => {
               { color: dark ? COLORS.secondaryWhite : COLORS.grayScale800 },
             ]}
           >
-            {totalToday} pints rated today
+            {totalPints} pints | {totalGSplits} G splits today
           </Text>
         </View>
+
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              sortMode === "pints" && styles.toggleActive,
+            ]}
+            onPress={() => setSortMode("pints")}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                sortMode === "pints" && styles.toggleTextActive,
+              ]}
+            >
+              Total Pints
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              sortMode === "gsplits" && styles.toggleActive,
+            ]}
+            onPress={() => setSortMode("gsplits")}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                sortMode === "gsplits" && styles.toggleTextActive,
+              ]}
+            >
+              G Splits
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {leaders.length > 0 ? (
           <FlatList
             data={leaders}
@@ -152,7 +220,7 @@ const PintLeaders = () => {
         ) : (
           <View style={styles.emptyContainer}>
             <AntDesign
-              name="Trophy"
+              name="trophy"
               size={48}
               color={dark ? COLORS.gray3 : COLORS.grayScale800}
             />
@@ -185,7 +253,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   headerTitle: {
     fontSize: 24,
@@ -196,6 +264,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "regular",
     color: COLORS.grayScale800,
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    backgroundColor: COLORS.grayscale100,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 10,
+  },
+  toggleActive: {
+    backgroundColor: COLORS.primary,
+  },
+  toggleText: {
+    fontSize: 15,
+    fontFamily: "semiBold",
+    color: COLORS.grayScale800,
+  },
+  toggleTextActive: {
+    color: COLORS.white,
   },
   card: {
     backgroundColor: COLORS.white,
@@ -237,16 +329,21 @@ const styles = StyleSheet.create({
   firstPlaceName: {
     fontSize: 20,
   },
+  subStat: {
+    fontSize: 13,
+    fontFamily: "regular",
+    marginTop: 2,
+  },
   countSection: {
     alignItems: "center",
     marginLeft: 12,
   },
-  pintCount: {
+  countText: {
     fontSize: 28,
     fontFamily: "bold",
     color: COLORS.primary,
   },
-  pintLabel: {
+  countLabel: {
     fontSize: 12,
     fontFamily: "regular",
     color: COLORS.grayScale800,
